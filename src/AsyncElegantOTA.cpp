@@ -6,7 +6,8 @@ void AsyncElegantOtaClass::setID(const char* id){
     _id = id;
 }
 
-void AsyncElegantOtaClass::begin(AsyncWebServer *server, const char* username, const char* password){
+void AsyncElegantOtaClass::begin(AsyncWebServer *server, const char* username, const char* password, 
+                                 const char* html, size_t len, bool gzip){
     _server = server;
 
     if(strlen(username) > 0){
@@ -32,14 +33,15 @@ void AsyncElegantOtaClass::begin(AsyncWebServer *server, const char* username, c
         #endif
     });
 
-    _server->on("/update", HTTP_GET, [&](AsyncWebServerRequest *request){
+    _server->on("/update", HTTP_GET, [&, html, len, gzip](AsyncWebServerRequest *request){
         if(_authRequired){
             if(!request->authenticate(_username.c_str(), _password.c_str())){
                 return request->requestAuthentication();
             }
         }
-        AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", ELEGANT_HTML, ELEGANT_HTML_SIZE);
-        response->addHeader("Content-Encoding", "gzip");
+				AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", (const uint8_t *)html, len);
+        if(gzip)
+					response->addHeader("Content-Encoding", "gzip");
         request->send(response);
     });
 
@@ -68,11 +70,15 @@ void AsyncElegantOtaClass::begin(AsyncWebServer *server, const char* username, c
             if(!request->hasParam("MD5", true)) {
                 return request->send(400, "text/plain", "MD5 parameter missing");
             }
-
-            if(!Update.setMD5(request->getParam("MD5", true)->value().c_str())) {
-                return request->send(400, "text/plain", "MD5 parameter invalid");
-            }
-
+            // Allow frontends which do not provide true MD5 checksum
+						if(!(strcmp("void", request->getParam("MD5", true)->value().c_str()))){
+							Serial.printf("NO MD5 checksum provided, skipping checks\n");
+						}
+						else {
+	            if(!Update.setMD5(request->getParam("MD5", true)->value().c_str())) {
+	                return request->send(400, "text/plain", "MD5 parameter invalid");
+	            }
+						}
             #if defined(ESP8266)
                 int cmd = (filename == "filesystem") ? U_FS : U_FLASH;
                 Update.runAsync(true);
@@ -106,15 +112,24 @@ void AsyncElegantOtaClass::begin(AsyncWebServer *server, const char* username, c
     });
 }
 
-// deprecated, keeping for backward compatibility
+// Needed, because of issue in restart()
 void AsyncElegantOtaClass::loop() {
-}
-
-void AsyncElegantOtaClass::restart() {
+    // Needed, because of yield() issue in restart()
+  if(_restartRequested){	
     yield();
     delay(1000);
     yield();
-    ESP.restart();
+    ESP.restart();		
+  }
+}
+
+void AsyncElegantOtaClass::restart() {
+  // Calling yield() at this point caused crashes !?
+  //
+  // Maybe a consequence of pending Serial.print()
+  // As a workaround we set a flag, and trigger the 
+  // restart from loop()
+  _restartRequested = true;
 }
 
 String AsyncElegantOtaClass::getID(){

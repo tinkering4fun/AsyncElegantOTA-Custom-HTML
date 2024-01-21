@@ -24,14 +24,15 @@
 #include "FS.h"
 
 #include "elegantWebpage.h"
-
+#include "simpleWebpage.h"
 
 class AsyncElegantOtaClass{
 
     public:
         void
             setID(const char* id),
-            begin(AsyncWebServer *server, const char* username = "", const char* password = ""),
+	    begin(AsyncWebServer *server, const char* username = "", const char* password = "", 
+		  const char* html = (const char *)ELEGANT_HTML, size_t len = ELEGANT_HTML_SIZE, bool gzip = true),
             loop(),
             restart();
 
@@ -44,6 +45,8 @@ class AsyncElegantOtaClass{
         String _username = "";
         String _password = "";
         bool _authRequired = false;
+        
+        bool _restartRequested = false;
 
 };
 
