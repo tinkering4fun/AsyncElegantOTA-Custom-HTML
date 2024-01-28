@@ -18,7 +18,7 @@
 
 
 const char SIMPLE_HTML[]  PROGMEM = R"text(
-<!DOCTYPE HTML><html>
+<!DOCTYPE HTML><html> <!-- File simpleWebpage.h ---->
 <head>
   <title>ESP OTA Flash Tool</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -279,6 +279,8 @@ const char SIMPLE_HTML[]  PROGMEM = R"text(
 	// -------------------------------------------------------------------
 	function fileChange()
 	{
+		
+		console.log('File selected');
 		//FileList Objekt aus dem Input Element mit der ID "fileA"
 		var fileList = document.getElementById("file").files;
 		
@@ -296,10 +298,13 @@ const char SIMPLE_HTML[]  PROGMEM = R"text(
 		var date = new Date(file.lastModified);
 		document.getElementById("filetime").value = date.toLocaleTimeString() + " - " + date.toLocaleDateString(); //.type;
 		
+		console.log('Extension:' + file.type);
 		// Check for binary file selected
-		if( file.type != "application/x-extension-bin")
+		if( file.type != "application/x-extension-bin" &&
+		    file.type != "application/octet-stream" )
 			return;
 		
+		console.log('OK to FLASH');
 		// Enable FLASH button
 		document.getElementById("progress").value = 0;
 		document.getElementById("prozent").innerHTML = "0%";	
