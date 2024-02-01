@@ -174,8 +174,15 @@ const char SIMPLE_HTML[]  PROGMEM = R"text(
   .then((response) => response.json())
   .then((json) => { 
 		console.log(json);
+		var chipid = "";
 		document.getElementById("chip").innerHTML = json.hardware;
-		document.getElementById("chipid").innerHTML = Number(json.id).toString(16).toUpperCase() + " hex";
+		
+		// Different with ESP8266 vs ESP32 ?
+		if(typeof json.id === 'number')
+			chipid = Number(json.id).toString(16).toUpperCase()
+		else 
+			chipid = json.id;
+		document.getElementById("chipid").innerHTML = chipid + " hex";
 	});
 		
 	// Credits to Austin Gil for the handleSubmit() skeleton
